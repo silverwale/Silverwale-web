@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef, useCallback } from 'react'
 import { FaBars, FaHeart, FaSearch, FaShoppingCart, FaTimes, FaPhoneAlt, FaUser } from 'react-icons/fa';
+import { IoIosArrowBack, IoIosArrowForward } from 'react-icons/io';
 import { FaUserGear } from 'react-icons/fa6';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
@@ -16,6 +17,37 @@ function Header() {
     const [query, setQuery] = useState('');
     const dispatch = useDispatch();
     const navigate = useNavigate();
+
+    // Category nav scroll state
+    const catNavRef = useRef(null);
+    const [canScrollLeft, setCanScrollLeft] = useState(false);
+    const [canScrollRight, setCanScrollRight] = useState(false);
+
+    const updateScrollIndicators = useCallback(() => {
+        const el = catNavRef.current;
+        if (!el) return;
+        setCanScrollLeft(el.scrollLeft > 2);
+        setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 2);
+    }, []);
+
+    useEffect(() => {
+        const el = catNavRef.current;
+        if (!el) return;
+        updateScrollIndicators();
+        el.addEventListener('scroll', updateScrollIndicators, { passive: true });
+        window.addEventListener('resize', updateScrollIndicators);
+        return () => {
+            el.removeEventListener('scroll', updateScrollIndicators);
+            window.removeEventListener('resize', updateScrollIndicators);
+        };
+    }, [updateScrollIndicators]);
+
+    const scrollCatNav = (direction) => {
+        const el = catNavRef.current;
+        if (!el) return;
+        const amount = direction === 'left' ? -200 : 200;
+        el.scrollBy({ left: amount, behavior: 'smooth' });
+    };
 
     const handleSearch = (e) => {
         e.preventDefault();
@@ -66,6 +98,13 @@ function Header() {
             name: cat.name,
             path: `/category/${cat.name.toLowerCase().replace(/ /g, '-')}`
         }));
+
+    // Re-check scroll indicators when categories load
+    useEffect(() => {
+        // Small delay to let DOM render the new links
+        const timer = setTimeout(updateScrollIndicators, 100);
+        return () => clearTimeout(timer);
+    }, [navLinks.length, updateScrollIndicators]);
 
     return (
         <header className="w-full bg-white sticky top-0 z-50">
@@ -197,20 +236,47 @@ function Header() {
                 </div>
             )}
 
-            {/* Bottom Nav Row (Desktop Only) */}
+            {/* Bottom Nav Row (Desktop Only) - Scrollable */}
             <nav className="hidden lg:block w-full border-b border-gray-100">
-                <ul className="container mx-auto px-4 flex justify-center space-x-4 lg:space-x-10 py-3 lg:py-5 text-[10px] lg:text-sm font-medium tracking-[0.2em] text-gray-700">
-                    {navLinks.map((link) => (
-                        <li key={link.name}>
-                            <Link
-                                to={link.path}
-                                className="hover:text-black hover:border-b hover:border-black transition-all pb-1 uppercase whitespace-nowrap"
-                            >
-                                {link.name}
-                            </Link>
-                        </li>
-                    ))}
-                </ul>
+                <div className="container mx-auto px-4 relative flex items-center">
+                    {/* Left scroll arrow */}
+                    {canScrollLeft && (
+                        <button
+                            onClick={() => scrollCatNav('left')}
+                            className="absolute left-0 z-10 h-full px-2 flex items-center bg-gradient-to-r from-white via-white/90 to-transparent"
+                            aria-label="Scroll categories left"
+                        >
+                            <IoIosArrowBack className="h-4 w-4 text-gray-400 hover:text-black transition-colors" />
+                        </button>
+                    )}
+
+                    <ul
+                        ref={catNavRef}
+                        className="flex items-center space-x-4 lg:space-x-10 py-3 lg:py-5 text-[10px] lg:text-sm font-medium tracking-[0.2em] text-gray-700 overflow-x-auto no-scrollbar scroll-smooth mx-auto"
+                    >
+                        {navLinks.map((link) => (
+                            <li key={link.name} className="flex-shrink-0">
+                                <Link
+                                    to={link.path}
+                                    className="hover:text-black hover:border-b hover:border-black transition-all pb-1 uppercase whitespace-nowrap"
+                                >
+                                    {link.name}
+                                </Link>
+                            </li>
+                        ))}
+                    </ul>
+
+                    {/* Right scroll arrow */}
+                    {canScrollRight && (
+                        <button
+                            onClick={() => scrollCatNav('right')}
+                            className="absolute right-0 z-10 h-full px-2 flex items-center bg-gradient-to-l from-white via-white/90 to-transparent"
+                            aria-label="Scroll categories right"
+                        >
+                            <IoIosArrowForward className="h-4 w-4 text-gray-400 hover:text-black transition-colors" />
+                        </button>
+                    )}
+                </div>
             </nav>
 
             {/* Mobile Drawer */}
