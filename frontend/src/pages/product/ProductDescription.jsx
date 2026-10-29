@@ -306,12 +306,6 @@ function ProductDescription() {
                             <h1 className="text-2xl md:text-3xl font-medium tracking-tight text-gray-900 leading-tight">
                                 {product?.name}
                             </h1>
-                            <div className="flex items-center space-x-4">
-                                <div className="flex items-center space-x-1 text-black text-[12px]">
-                                    {[...Array(5)].map((_, i) => <FaStar key={i} />)}
-                                </div>
-                                <span className="text-xs underline underline-offset-4 font-medium text-gray-800">10 Reviews</span>
-                            </div>
                         </div>
 
                         {/* Price & Offers */}
